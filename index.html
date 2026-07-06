@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Gate House Visitor Log</title>
+<style>
+  :root{
+    --green:#2f6b35; --green-d:#244f29; --green-l:#e7f1e8;
+    --amber:#b8860b; --red:#b23b3b; --grey:#5b6660; --line:#d4dbd5; --bg:#f4f7f4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#1d241f;font-size:18px;line-height:1.4}
+  header{background:var(--green);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  header .site{font-weight:700;font-size:20px}
+  header .copyr{font-weight:500;font-size:11px;opacity:.85;margin-top:2px;letter-spacing:.2px}
+  header .right{display:flex;align-items:center;gap:8px}
+  header .count{background:#fff;color:var(--green-d);border-radius:20px;padding:4px 14px;font-weight:700;font-size:16px}
+  header .cloud{font-size:13px;border-radius:20px;padding:4px 10px;font-weight:700}
+  .cloud.on{background:#d7ecd9;color:var(--green-d)} .cloud.off{background:#fbe3df;color:var(--red)} .cloud.idle{background:#eee;color:#666}
+  main{max-width:760px;margin:0 auto;padding:16px 14px 40px}
+  h2{font-size:20px;margin:6px 2px 12px}
+  .muted{color:var(--grey)}
+  button{font-family:inherit;font-size:18px;border:0;border-radius:12px;padding:16px 18px;cursor:pointer}
+  .btn-primary{background:var(--green);color:#fff;width:100%;font-weight:700}
+  .btn-primary:active{background:var(--green-d)}
+  .btn-out{background:var(--amber);color:#fff;font-weight:700;padding:12px 18px;border-radius:10px}
+  .btn-ghost{background:#fff;color:var(--green-d);border:2px solid var(--green);font-weight:700}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+  .btn-row button{flex:1;min-width:140px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .visitor-card{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .visitor-card .name{font-weight:700;font-size:19px}
+  .visitor-card .meta{font-size:15px;color:var(--grey)}
+  label{display:block;font-weight:600;margin:14px 2px 6px}
+  input[type=text],input[type=tel],textarea,select{width:100%;font-size:18px;padding:13px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+  textarea{min-height:54px;resize:vertical}
+  .req{color:var(--red)}
+  .yn{display:flex;gap:10px;margin-top:6px}
+  .yn button{flex:1;background:#fff;border:2px solid var(--line);color:#333;border-radius:10px;padding:13px}
+  .yn button.on-yes{background:var(--green);color:#fff;border-color:var(--green)}
+  .yn button.on-no{background:var(--grey);color:#fff;border-color:var(--grey)}
+  .subfield{display:none;margin-top:8px}
+  .subfield.show{display:block}
+  .flag{background:#fdecea;border:1.5px solid var(--red);color:var(--red);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px;font-weight:600;display:none}
+  .declaration{background:var(--green-l);border-radius:10px;padding:12px 14px;font-size:15px;margin:16px 0}
+  .sigwrap{border:1.5px dashed var(--line);border-radius:10px;background:#fff;margin-top:6px}
+  canvas#sig{width:100%;height:140px;display:block;touch-action:none;border-radius:10px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--green-l);color:var(--green-d)}
+  .pill{display:inline-block;font-size:12px;font-weight:700;border-radius:10px;padding:2px 8px}
+  .pill.in{background:#e7f1e8;color:var(--green-d)}
+  .pill.out{background:#eee;color:#666}
+  .pill.flag{background:#fdecea;color:var(--red)}
+  .pill.up{background:#d7ecd9;color:var(--green-d)}
+  .pill.pend{background:#fbf0d8;color:#8a6d00}
+  .empty{text-align:center;color:var(--grey);padding:36px 10px}
+  .field-note{font-size:13px;color:var(--grey);margin-top:4px}
+  .setup-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:40px;background:var(--green-d);color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;max-width:86%;text-align:center;z-index:120;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  /* ---- v3 home screen ---- */
+  .home{max-width:560px;margin:0 auto;padding:10px 4px}
+  .home-hello{text-align:center;color:var(--green-d);font-weight:700;font-size:18px;margin:8px 0 18px}
+  .home-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .big{border-radius:18px;padding:34px 12px;color:#fff;font-weight:800;font-size:24px;display:flex;flex-direction:column;align-items:center;gap:10px;line-height:1}
+  .big .ic{font-size:42px;line-height:1}
+  .big.in{background:var(--green)} .big.in:active{background:var(--green-d)}
+  .big.out{background:var(--red)} .big.out:active{filter:brightness(.92)}
+  .home-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .tile{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:18px 12px;font-weight:700;color:var(--green-d);text-align:center;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:10px;justify-content:center}
+  .tile .ic{font-size:32px;line-height:1}
+  .tile.nums{font-weight:400;color:#1d241f;font-size:15px;line-height:1.55;align-items:stretch;text-align:left}
+  .tile.nums .lbl{color:var(--grey);font-size:13px;margin-bottom:4px}
+  .tile.nums b{color:var(--green-d)}
+  .stafflink{display:block;width:100%;background:transparent;color:var(--grey);font-size:14px;font-weight:600;border-top:1px solid var(--line);border-radius:0;padding:16px}
+  /* ---- staff sub-nav ---- */
+  .staffbar{display:flex;gap:8px;margin-bottom:14px}
+  .staffbar button{flex:1;background:#fff;border:1.5px solid var(--line);color:var(--green-d);font-weight:700;font-size:15px;border-radius:10px;padding:11px 8px}
+  .staffbar button.on{background:var(--green);color:#fff;border-color:var(--green)}
+  /* ---- driver tick ---- */
+  .drv{display:flex;align-items:center;gap:12px;background:#fbf7e8;border:1.5px solid #e7d9a6;border-radius:10px;padding:13px;margin-bottom:4px;font-weight:700;color:#6b5800;cursor:pointer}
+  .drv input{width:24px;height:24px;flex:0 0 auto}
+  .drv .sub{font-weight:400;font-size:13px;color:#8a7400;margin-top:2px}
+  /* ---- overlay + modal ---- */
+  .overlay{position:fixed;inset:0;background:rgba(20,30,22,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+  .modal{background:#fff;border-radius:16px;max-width:620px;width:100%;margin:auto;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .modal .mhead{background:var(--green);color:#fff;padding:14px 18px}
+  .modal .mhead .t{font-weight:700;font-size:19px}
+  .modal .mhead .s{font-size:13px;opacity:.92;margin-top:2px}
+  .modal .mbody{padding:8px 18px 14px;max-height:58vh;overflow:auto}
+  .modal .mfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:10px}
+  .modal .mfoot button{flex:1}
+  .inst{list-style:none;margin:6px 0 0;padding:0}
+  .inst li{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.45;padding:9px 2px;border-bottom:1px solid #eef1ee}
+  .inst li .tk{color:var(--green);font-weight:800;flex:0 0 auto}
+  .inst .stop{margin-top:12px;border:1.5px solid var(--red);background:#fdecea;color:var(--red);border-radius:10px;padding:11px 13px;font-size:14px;font-weight:700}
+  .ackrow{display:flex;align-items:center;gap:12px;padding:14px;background:var(--green-l);border-radius:10px;margin-top:14px;font-weight:700;color:var(--green-d);cursor:pointer}
+  .ackrow input{width:26px;height:26px;flex:0 0 auto}
+  .mapframe{width:100%;height:62vh;border:0;display:block;background:#eef1ee}
+  @media print{
+    header,.no-print,.staffbar{display:none!important}
+    body{background:#fff;font-size:12px}
+    main{padding:0;max-width:100%}
+    th,td{padding:4px 6px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="site" id="siteName">Gate House</div><div class="copyr">&copy; 2026 Rhydimoor Farms Ltd &middot; all rights reserved</div></div>
+  <div class="right">
+    <div class="cloud idle" id="cloudStatus">Cloud: off</div>
+    <div class="count" id="onSiteCount">0 on site</div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="gateVisitorLog_v2";   // keep the same store key — data carries over from v2
+  var OLDKEY="gateVisitorLog_v1";
+  // Per-farm site map: Google My Maps aerial + our own always-visible labels.
+  // pin = [name, lng, lat, class, labelDX, labelDY]
+  var MAPCFG={
+    "Rhydimoor":{mid:"1y_wTvUPVq0nIJ0AdD_B1DBfeQrfAmuo",clat:52.21825,clng:-2.836867,z:19,pins:[
+      ["House 1",-2.8372105,52.2182047,"house",-52,-16],
+      ["House 2",-2.8369061,52.2183666,"house",-48,22],
+      ["House 3",-2.83654,52.2185704,"house",46,-6],
+      ["Gate House & Office",-2.8363884,52.2183592,"gate",8,-32],
+      ["WC",-2.8371823,52.217936,"other",2,30],
+      ["Break room",-2.8372091,52.2180765,"other",-72,-20],
+      ["1A",-2.837346,52.2180232,"bin",-50,12],
+      ["1B",-2.8373138,52.2180042,"bin",-46,34],
+      ["Wheat",-2.8372924,52.2180371,"bin",-62,-6],
+      ["2",-2.8372454,52.2180486,"bin",26,-24],
+      ["3a Wheat",-2.8366952,52.2183891,"bin",-8,32],
+      ["3",-2.8366437,52.2184018,"bin",-40,-26],
+      ["4A",-2.8365968,52.2184231,"bin",0,-42],
+      ["4B",-2.8365646,52.2184469,"bin",44,-30]
+    ]},
+    "Bainstree":{mid:"1ph7Uc-Y-DrMvghdI-6_zj12bZrJZ9RE",clat:52.20988,clng:-2.818415,z:19,pins:[
+      ["Gate house & office",-2.8187719,52.2100426,"gate",-92,-20],
+      ["First Aid",-2.8186995,52.2100459,"firstaid",-4,-40],
+      ["Fire Assembly Point",-2.8187665,52.2100114,"fire",-66,18],
+      ["House 1",-2.8187558,52.2099111,"house",-64,8],
+      ["House 2",-2.8185871,52.2096739,"house",0,30],
+      ["House 3",-2.8182518,52.2100881,"house",46,-6],
+      ["House 4",-2.8180581,52.209903,"house",52,6],
+      ["WC",-2.818101,52.2097913,"other",42,16],
+      ["Wheat 1&2",-2.8186108,52.2097684,"bin",-78,24],
+      ["Wheat 3&4",-2.8180851,52.2099747,"bin",58,-10],
+      ["1A",-2.8185437,52.2098194,"bin",-4,-30],
+      ["1B",-2.8185893,52.2098112,"bin",-56,-8],
+      ["2A",-2.8185115,52.2097923,"bin",0,32],
+      ["2B",-2.8185679,52.2097783,"bin",-58,16],
+      ["3A",-2.8182017,52.2099591,"bin",-46,-16],
+      ["3B",-2.8181494,52.2099821,"bin",8,-28],
+      ["4A",-2.8181669,52.2099213,"bin",42,18],
+      ["4B",-2.8181266,52.2099361,"bin",46,-6],
+      ["Break Room",-2.8184016,52.2100577,"other",0,-32]
+    ]}
+  };
+  var STAFF=[
+    {name:"Andrew",tel:"07506 154978"},
+    {name:"Lawson",tel:"07949 207887"}
+  ];
+  var store=load();
+  var view="home";
+  var staffUnlocked=false; // staff PIN session for Records/Setup
+  var pendingView=null;    // protected view waiting behind the PIN
+  var form={};             // working sign-in answers (incl. read + driver)
+  var sig=null;            // signature pad state
+
+  function load(){
+    try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&s.records)return migrate(s);}catch(e){}
+    try{var o=JSON.parse(localStorage.getItem(OLDKEY));if(o&&o.records){o.uploadUrl="";return migrate(o);}}catch(e){}
+    return migrate({site:"", uploadUrl:"", records:[]});
+  }
+  function migrate(s){ if(typeof s.uploadUrl!=='string'||!s.uploadUrl) s.uploadUrl='https://hook.eu1.make.com/tauuqts7s5j6rghh313rwlpup21torgd'; if(typeof s.staffPin!=='string'||!s.staffPin) s.staffPin='1379'; return s; }
+  function save(){localStorage.setItem(KEY,JSON.stringify(store));}
+  function esc(s){return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function nowISO(){return new Date().toISOString();}
+  function fmt(iso){if(!iso)return "";var d=new Date(iso);return d.toLocaleDateString('en-GB')+" "+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+  function fmtTime(iso){if(!iso)return "";return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+  function onSite(){return store.records.filter(function(r){return !r.out;});}
+  function toast(msg){
+    var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); },3000);
+  }
+  function pendingCount(){return store.uploadUrl?store.records.filter(function(r){return !r.uploaded;}).length:0;}
+
+  function setSite(){
+    document.getElementById('siteName').textContent = store.site ? ("Gate House — "+store.site) : "Gate House";
+    document.getElementById('onSiteCount').textContent = onSite().length+" on site";
+    var c=document.getElementById('cloudStatus');
+    if(!store.uploadUrl){ c.className='cloud idle'; c.textContent='Cloud: off'; }
+    else { var p=pendingCount(); if(p){ c.className='cloud off'; c.textContent=p+' to upload'; } else { c.className='cloud on'; c.textContent='Cloud: synced'; } }
+  }
+
+  // ---------- Router ----------
+  function render(){
+    if(view==='home'||view==='signin'||view==='onsite'){ staffUnlocked=false; } // visitor screens → re-lock staff areas
+    setSite();
+    var m=document.getElementById('main');
+    if(!store.site && view!=='settings'){ view='settings'; staffUnlocked=true; } // first-run setup
+    if(view==='home') m.innerHTML=vHome();
+    else if(view==='signin') m.innerHTML=vSignin();
+    else if(view==='onsite') m.innerHTML=vOnsite();
+    else if(view==='pin') m.innerHTML=vPinGate();
+    else if(view==='records') m.innerHTML=staffWrap(vRecords());
+    else m.innerHTML=staffWrap(vSettings());
+    wire();
+  }
+
+  function staffWrap(inner){
+    return '<div class="staffbar no-print">'+
+      '<button data-view="records" class="'+(view==='records'?'on':'')+'">Records</button>'+
+      '<button data-view="settings" class="'+(view==='settings'?'on':'')+'">Setup</button>'+
+      '<button data-act="home">Done</button>'+
+    '</div>'+inner;
+  }
+
+  // ---------- Home ----------
+  function vHome(){
+    var nums='';
+    STAFF.forEach(function(p){ nums+='<div><b>'+esc(p.name)+'</b> &nbsp;'+esc(p.tel)+'</div>'; });
+    var mapTile = MAPCFG[store.site]
+      ? '<button class="tile" data-act="map"><span class="ic">🗺️</span>View site map</button>'
+      : '<div class="tile" style="color:var(--grey);font-weight:400"><span class="ic">🗺️</span>Site map<br><span style="font-size:13px">(set up by staff)</span></div>';
+    return '<div class="home">'+
+      '<div class="home-hello">Welcome — please sign in or sign out</div>'+
+      '<div class="home-btns">'+
+        '<button class="big in" data-act="signin"><span class="ic">➡️</span>SIGN IN</button>'+
+        '<button class="big out" data-act="signout"><span class="ic">⬅️</span>SIGN OUT</button>'+
+      '</div>'+
+      '<div class="home-row">'+
+        mapTile+
+        '<div class="tile nums"><div class="lbl">Need help on site? Ring:</div>'+nums+'</div>'+
+      '</div>'+
+      '<button class="stafflink" data-act="staff">🔒 Staff — records &amp; settings</button>'+
+    '</div>';
+  }
+
+  // ---------- PIN gate ----------
+  function vPinGate(){
+    return '<div class="card" style="max-width:380px;margin:24px auto;text-align:center">'+
+      '<h2 style="margin-top:0">Staff access</h2>'+
+      '<p class="muted" style="font-size:15px">Enter the staff PIN to open records &amp; settings.</p>'+
+      '<input type="password" inputmode="numeric" id="pinInput" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:8px" placeholder="&bull;&bull;&bull;&bull;">'+
+      '<div class="btn-row" style="margin-top:14px">'+
+        '<button class="btn-ghost" data-act="home">Cancel</button>'+
+        '<button class="btn-primary" id="pinOk" style="width:auto;flex:1">Unlock</button>'+
+      '</div>'+
+      '<div class="field-note" id="pinMsg"></div>'+
+    '</div>';
+  }
+
+  // ---------- Sign out (on-site list) ----------
+  function vOnsite(){
+    var list=onSite();
+    var h='<button class="btn-ghost no-print" data-act="home" style="margin-bottom:12px">⬅ Home</button>'+
+          '<h2>Sign out — tap your name</h2>';
+    if(!list.length){
+      h+='<div class="empty">Nobody is signed in at the moment.</div>';
+      return h;
+    }
+    list.slice().reverse().forEach(function(r){
+      h+='<div class="card visitor-card">'+
+           '<div><div class="name">'+esc(r.name)+'</div>'+
+           '<div class="meta">'+esc(r.company||'—')+(r.vehicle?(' · '+esc(r.vehicle)):'')+'</div>'+
+           '<div class="meta">In: '+fmtTime(r.in)+(r.bioFlag?' · <span class="pill flag">BIOSECURITY CHECK</span>':'')+'</div></div>'+
+           '<button class="btn-out" data-out="'+r.id+'">Sign out</button>'+
+         '</div>';
+    });
+    return h;
+  }
+
+  function ynField(id,label,note){
+    return '<label>'+label+' <span class="req">*</span></label>'+
+      (note?'<div class="field-note">'+note+'</div>':'')+
+      '<div class="yn" data-yn="'+id+'">'+
+        '<button type="button" data-val="yes">Yes</button>'+
+        '<button type="button" data-val="no">No</button>'+
+      '</div>';
+  }
+
+  // ---------- Sign in form ----------
+  function vSignin(){
+    sig=null;
+    var driverOn = form.driver===true;
+    return '<button class="btn-ghost no-print" data-act="home" style="margin-bottom:12px">⬅ Home</button>'+
+      '<h2>Sign in</h2>'+
+      '<div class="card">'+
+        '<label class="drv" for="f_driver"><input type="checkbox" id="f_driver"'+(driverOn?' checked':'')+'>'+
+          '<span>Feed or hatchery driver<div class="sub">Ticks the Avara allowance — auto-fills &ldquo;refer to schedule&rdquo; for previous sites.</div></span></label>'+
+        '<label>Name <span class="req">*</span></label><input type="text" id="f_name" autocomplete="off">'+
+        '<label>Company / organisation</label><input type="text" id="f_company" autocomplete="off">'+
+        '<label>Business telephone number</label><input type="tel" id="f_phone" autocomplete="off">'+
+        '<label>Vehicle registration</label><input type="text" id="f_vehicle" autocomplete="off" style="text-transform:uppercase">'+
+        '<label>Reason for visit</label><input type="text" id="f_purpose" autocomplete="off">'+
+        '<label>Next site visit (if known)</label><input type="text" id="f_next" autocomplete="off">'+
+      '</div>'+
+      '<div class="card">'+
+        '<h2 style="margin-top:0">Biosecurity declaration</h2>'+
+        ynField('avian','Have you had any other avian or pig contact in the last 72 hours?','If yes, list the site(s) below — feed/hatchery drivers may write &ldquo;refer to schedule&rdquo;.')+
+        '<div class="subfield" id="sub_avian">'+
+          '<div class="field-note">List the site(s) visited in each 24-hour block (leave blank if none).</div>'+
+          '<label style="font-size:15px">Last 24 hours</label><input type="text" id="f_avian24" placeholder="Site(s)">'+
+          '<label style="font-size:15px">24&ndash;48 hours ago</label><input type="text" id="f_avian48" placeholder="Site(s)">'+
+          '<label style="font-size:15px">48&ndash;72 hours ago</label><input type="text" id="f_avian72" placeholder="Site(s)">'+
+        '</div>'+
+        ynField('poultry','Have you had contact with poultry in the last 7 days (14 days if you have been overseas)?','If yes, give the date and site name below.')+
+        '<div class="subfield" id="sub_poultry"><input type="text" id="f_poultrySite" placeholder="Date &amp; site name of last poultry contact"></div>'+
+        ynField('agree','Will you follow our site biosecurity — clean clothing and footwear, foot dips, hand hygiene, site PPE?','')+
+        ynField('birdarea','Will you be entering the bird area?','')+
+        '<div class="flag" id="bioWarn">⚠ <b>STOP — BIOSECURITY CHECK NEEDED.</b><br>Do <b>not</b> enter the site yet. The gate house may be unattended, so please ring for advice before going any further:<br>&nbsp;&nbsp;Andrew Thomas — 07506 154978<br>&nbsp;&nbsp;Lawson Thomas — 07949 207887<br>You can still complete and sign in below, but wait for the go-ahead before entering.</div>'+
+        '<div class="declaration">I confirm the information above is correct. I understand this is a poultry site and agree to follow all biosecurity instructions while on the premises.</div>'+
+        '<label>Signature</label>'+
+        '<div class="field-note">Sign with your finger.</div>'+
+        '<div class="sigwrap"><canvas id="sig" width="600" height="140"></canvas></div>'+
+        '<button type="button" class="btn-ghost no-print" id="sigClear" style="margin-top:8px;padding:10px 14px">Clear signature</button>'+
+      '</div>'+
+      '<button class="btn-primary" id="doSignin">Sign in &amp; stamp time</button>'+
+      '<div style="height:10px"></div>'+
+      '<button class="btn-ghost no-print" data-act="home" style="width:100%">Cancel</button>';
+  }
+
+  // ---------- Records (staff) ----------
+  function vRecords(){
+    var recs=store.records.slice().reverse();
+    var h='<h2>Visitor records</h2>'+
+      '<div class="btn-row no-print" style="margin-bottom:14px">'+
+        '<button class="btn-ghost" id="expCsv">⬇ Export CSV</button>'+
+        '<button class="btn-ghost" id="expJson">⬇ Backup (.json)</button>'+
+        '<button class="btn-ghost" id="doPrint">🖨 Print / PDF</button>'+
+      '</div>';
+    if(store.uploadUrl){
+      var p=pendingCount();
+      h+='<div class="muted no-print" style="font-size:14px;margin:-6px 0 12px">Auto-upload is on. '+(p?(p+' record(s) waiting to upload — will send when online. '):'All records uploaded. ')+'<a href="#" id="flushNow">Try now</a></div>';
+    }
+    if(!recs.length){ h+='<div class="empty">No records yet.</div>'; return h; }
+    h+='<div class="card" style="padding:6px"><div style="overflow-x:auto"><table><thead><tr>'+
+       '<th>Date</th><th>Name</th><th>Company</th><th>Vehicle</th><th>In</th><th>Out</th><th>Bio</th><th>Cloud</th></tr></thead><tbody>';
+    recs.forEach(function(r){
+      h+='<tr>'+
+        '<td>'+new Date(r.in).toLocaleDateString('en-GB')+'</td>'+
+        '<td>'+esc(r.name)+'</td>'+
+        '<td>'+esc(r.company||'')+'</td>'+
+        '<td>'+esc(r.vehicle||'')+'</td>'+
+        '<td>'+fmtTime(r.in)+'</td>'+
+        '<td>'+(r.out?fmtTime(r.out):'<span class="pill in">on site</span>')+'</td>'+
+        '<td>'+(r.bioFlag?'<span class="pill flag">check</span>':'ok')+'</td>'+
+        '<td>'+(!store.uploadUrl?'—':(r.uploaded?'<span class="pill up">sent</span>':'<span class="pill pend">pending</span>'))+'</td>'+
+      '</tr>';
+    });
+    h+='</tbody></table></div></div>';
+    h+='<div class="muted no-print" style="font-size:14px;margin-top:8px">Records are kept on this tablet and (if auto-upload is on) sent to the cloud. You can also Export CSV / Backup / Print at any time.</div>';
+    return h;
+  }
+
+  // ---------- Settings (staff) ----------
+  function vSettings(){
+    return '<h2>Set up this tablet</h2>'+
+      '<div class="card">'+
+        '<label>Which gate house is this tablet in?</label>'+
+        '<div class="setup-row">'+
+          '<select id="siteSel">'+
+            '<option value="">— choose —</option>'+
+            '<option value="Rhydimoor"'+(store.site==='Rhydimoor'?' selected':'')+'>Rhydimoor</option>'+
+            '<option value="Bainstree"'+(store.site==='Bainstree'?' selected':'')+'>Bainstree</option>'+
+          '</select>'+
+        '</div>'+
+        '<button class="btn-primary" id="saveSite">Save site</button>'+
+        '<div class="field-note">Set once when the tablet is installed. Each gate house keeps its own records and shows its own site map.</div>'+
+      '</div>'+
+      '<div class="card">'+
+        '<h2 style="margin-top:0">Automatic upload</h2>'+
+        '<label>Cloud upload link (webhook)</label>'+
+        '<input type="text" id="upUrl" autocomplete="off" placeholder="Paste the upload link here" value="'+esc(store.uploadUrl||'')+'">'+
+        '<div class="field-note">When set, every sign-in and sign-out is sent automatically to the cloud (and on into Dropbox). Leave blank to run fully offline with daily export instead.</div>'+
+        '<div class="btn-row" style="margin-top:10px">'+
+          '<button class="btn-ghost" id="saveUrl">Save link</button>'+
+        '</div>'+
+        '<div class="field-note" id="upMsg"></div>'+
+      '</div>'+
+      '<div class="card">'+
+        '<h2 style="margin-top:0">Daily routine</h2>'+
+        '<p class="muted" style="font-size:15px">1. Visitors sign in on arrival and sign out when they leave.<br>'+
+        '2. If auto-upload is on, records reach the cloud on their own — nothing to do.<br>'+
+        '3. For Avara or APHA, open <b>Records → Print / PDF</b> (or Export CSV) for a clean copy.</p>'+
+      '</div>'+
+      '<div class="card">'+
+        '<h2 style="margin-top:0">Data &amp; backup</h2>'+
+        '<p class="muted" style="font-size:15px">Records are stored on <b>this tablet</b> and uploaded if a link is set. '+store.records.length+' record(s) stored, '+pendingCount()+' waiting to upload.</p>'+
+        '<button class="btn-ghost" id="expJson2" style="width:100%;margin-bottom:8px">⬇ Download backup (.json)</button>'+
+        '<button class="btn-ghost" id="wipeAll" style="width:100%;border-color:var(--red);color:var(--red)">Erase ALL records on this tablet (start fresh)</button>'+
+        '<div class="field-note">For clearing test/dummy entries before going live. Download a backup first if in doubt. Does not touch anything already uploaded to Dropbox or the Sheet.</div>'+
+      '</div>'+
+      '<div class="card">'+
+        '<h2 style="margin-top:0">Staff PIN</h2>'+
+        '<p class="muted" style="font-size:15px">Protects Setup and Records from visitors. Default is <b>1379</b> — change it here and keep it to staff.</p>'+
+        '<input type="text" inputmode="numeric" id="pinSet" value="'+esc(store.staffPin)+'" style="max-width:160px;font-size:20px;letter-spacing:4px">'+
+        '<div><button class="btn-ghost" id="savePin" style="margin-top:8px">Save PIN</button></div>'+
+        '<div class="field-note">Visitors can still sign in and out without it.</div>'+
+      '</div>'+
+      '<div class="card"><p class="field-note">© 2026 Rhydimoor Farms Ltd. Visitor log — works offline; uploads when online.</p></div>';
+  }
+
+  // ---------- Instructions modal (shown every sign-in) ----------
+  function instItems(){
+    return [
+      '<b>Tell a member of staff you have arrived</b> before you enter.',
+      '<b>Complete and sign in on the tablet</b> — every box.',
+      '<b>Feed and hatchery drivers:</b> in the <b>previous sites visited</b> box you may write <b>&ldquo;refer to schedule&rdquo;</b> (Avara policy).',
+      '<b>Do not enter</b> if you have had <b>diarrhoea or other enteric illness in the last 48 hours</b>, or Salmonella, Campylobacter or flu-like symptoms.',
+      '<b>Declare</b> if you have been outside the UK in the last <b>14 days</b>, and the date you last had contact with poultry (within <b>7 days</b>).',
+      '<b>No</b> avian or pig contact in the last 72 hours without telling staff first.',
+      'Wear the <b>site clothing provided</b> — overalls, footwear / overshoes and dust mask. <b>Wash and sanitise hands</b> on arrival and before leaving.',
+      'Leave <b>vehicles outside</b> the bio-secure area unless essential; disinfect any vehicle that enters.',
+      '<b>No cameras</b> or mobile recording devices on site.',
+      '<b>No</b> unauthorised people, pets or other animals on site.',
+      'Keep <b>site gates locked</b> at all times.',
+      'If entering the <b>bird area</b>, follow all biosecurity.'
+    ];
+  }
+  function openInstructions(){
+    var lis=instItems().map(function(t){return '<li><span class="tk">&#10003;</span><span>'+t+'</span></li>';}).join('');
+    var ov=document.createElement('div'); ov.className='overlay'; ov.id='ovInst';
+    ov.innerHTML='<div class="modal">'+
+      '<div class="mhead"><div class="t">Visitor instructions</div><div class="s">This is a poultry site — please read before you enter</div></div>'+
+      '<div class="mbody"><ul class="inst">'+lis+'</ul>'+
+        '<div class="inst"><div class="stop">⚠ If the tablet flags a BIOSECURITY CHECK, do not enter — ring Andrew (07506 154978) or Lawson (07949 207887) for advice first.</div></div>'+
+        '<label class="ackrow" for="ackChk"><input type="checkbox" id="ackChk"><span>I have read and agree to follow these instructions</span></label>'+
+      '</div>'+
+      '<div class="mfoot">'+
+        '<button class="btn-ghost" id="instCancel">Cancel</button>'+
+        '<button class="btn-primary" id="instGo" disabled style="opacity:.5">Continue to sign-in</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    var chk=ov.querySelector('#ackChk'), go=ov.querySelector('#instGo');
+    chk.onchange=function(){ go.disabled=!chk.checked; go.style.opacity=chk.checked?'1':'.5'; };
+    ov.querySelector('#instCancel').onclick=function(){ ov.remove(); };
+    go.onclick=function(){
+      if(!chk.checked) return;
+      ov.remove();
+      form={}; form.read='yes';   // fresh form, instructions acknowledged
+      view='signin'; render(); window.scrollTo(0,0);
+    };
+  }
+
+  // ---------- Map modal ----------
+  // Aerial photo from Google My Maps with our own always-visible labels drawn on top.
+  var MAPW=958, MAPH=910, MAPCOL={bin:"#0270c2",house:"#e65100",gate:"#1f8a3b",other:"#55595e",firstaid:"#1f8a3b",fire:"#c0392b"};
+  function openMap(){
+    var cfg=MAPCFG[store.site]; if(!cfg) return;
+    var sc=256*Math.pow(2,cfg.z);
+    function xpx(lng){return (lng+180)/360*sc;}
+    function ypx(lat){var r=lat*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*sc;}
+    function PX(lng){return MAPW/2 + xpx(lng)-xpx(cfg.clng);}
+    function PY(lat){return MAPH/2 + ypx(lat)-ypx(cfg.clat);}
+    var leads='', labs='';
+    cfg.pins.forEach(function(p){
+      var x=PX(p[1]),y=PY(p[2]),lx=x+p[4],ly=y+p[5];
+      leads+='<line x1="'+x+'" y1="'+y+'" x2="'+lx+'" y2="'+ly+'" stroke="#fff" stroke-width="1.4"/>'+
+             '<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="#fff" stroke="#333" stroke-width="0.8"/>';
+      labs+='<div style="position:absolute;left:'+lx+'px;top:'+ly+'px;transform:translate(-50%,-50%);'+
+            'font:700 14px Arial;color:#fff;background:'+MAPCOL[p[3]]+';padding:2px 7px;border-radius:11px;'+
+            'white-space:nowrap;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.6)">'+esc(p[0])+'</div>';
+    });
+    var scale=Math.min(1,(Math.min(window.innerWidth,640)-24)/MAPW);
+    var ov=document.createElement('div'); ov.className='overlay'; ov.id='ovMap';
+    ov.innerHTML='<div class="modal">'+
+      '<div class="mhead"><div class="t">'+esc(store.site)+' — site map</div><div class="s">Houses, feed bins &amp; sign-in · needs wifi to load</div></div>'+
+      '<div class="mbody" style="padding:10px;max-height:none">'+
+        '<div style="width:'+(MAPW*scale)+'px;height:'+(MAPH*scale)+'px;margin:0 auto;overflow:hidden">'+
+          '<div style="position:relative;width:'+MAPW+'px;height:'+MAPH+'px;transform:scale('+scale+');transform-origin:top left">'+
+            '<iframe src="https://www.google.com/maps/d/embed?mid='+cfg.mid+'&ll='+cfg.clat+','+cfg.clng+'&z='+cfg.z+'" width="'+MAPW+'" height="'+MAPH+'" style="border:0;display:block;pointer-events:none"></iframe>'+
+            '<svg width="'+MAPW+'" height="'+MAPH+'" style="position:absolute;left:0;top:0;pointer-events:none">'+leads+'</svg>'+
+            labs+
+          '</div>'+
+        '</div>'+
+        '<div class="field-note" style="text-align:center;margin-top:8px">Orange = houses &middot; blue = feed bins &middot; green = sign in'+(store.site==="Bainstree"?' / first aid &middot; red = fire assembly':'')+'</div>'+
+      '</div>'+
+      '<div class="mfoot">'+
+        '<button class="btn-primary" id="mapClose">Close map</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#mapClose').onclick=function(){ ov.remove(); };
+  }
+
+  // ---------- Signature pad ----------
+  function initSig(){
+    var c=document.getElementById('sig'); if(!c) return;
+    var ctx=c.getContext('2d');
+    var ratio=window.devicePixelRatio||1, rect=c.getBoundingClientRect();
+    c.width=Math.round(rect.width*ratio); c.height=Math.round(140*ratio);
+    ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#1d241f';
+    sig={c:c,ctx:ctx,drawing:false,empty:true,rect:rect};
+    function pos(e){ var r=c.getBoundingClientRect(); var t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+    function start(e){ e.preventDefault(); sig.drawing=true; sig.empty=false; var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+    function move(e){ if(!sig.drawing)return; e.preventDefault(); var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+    function end(){ sig.drawing=false; }
+    c.addEventListener('mousedown',start); c.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+    c.addEventListener('touchstart',start,{passive:false}); c.addEventListener('touchmove',move,{passive:false}); c.addEventListener('touchend',end);
+    var clr=document.getElementById('sigClear'); if(clr) clr.onclick=function(){ ctx.clearRect(0,0,c.width,c.height); sig.empty=true; };
+  }
+  function sigData(){ if(!sig||sig.empty) return ""; try{return sig.c.toDataURL('image/png');}catch(e){return "";} }
+
+  // ---------- Y/N helper ----------
+  function setYN(id,val){
+    form[id]=val;
+    var g=document.querySelector('[data-yn="'+id+'"]'); if(!g) return;
+    g.querySelectorAll('button').forEach(function(x){ x.className = (x.dataset.val===val)?(val==='yes'?'on-yes':'on-no'):''; });
+  }
+
+  // ---------- Wiring ----------
+  function wire(){
+    // action buttons (home / signin / signout / map / staff / back)
+    document.querySelectorAll('[data-act]').forEach(function(b){
+      b.onclick=function(){
+        var a=b.dataset.act;
+        if(a==='home'){ staffUnlocked=false; view='home'; render(); window.scrollTo(0,0); }
+        else if(a==='signin'){ openInstructions(); }
+        else if(a==='signout'){ view='onsite'; render(); window.scrollTo(0,0); }
+        else if(a==='map'){ openMap(); }
+        else if(a==='staff'){ pendingView='records'; view='pin'; render(); window.scrollTo(0,0); }
+      };
+    });
+    // staff sub-nav (records / settings) — gated behind the PIN
+    document.querySelectorAll('[data-view]').forEach(function(b){
+      b.onclick=function(){
+        var target=b.dataset.view;
+        if(!staffUnlocked && !(target==='settings' && !store.site)){ pendingView=target; view='pin'; render(); window.scrollTo(0,0); return; }
+        view=target; render(); window.scrollTo(0,0);
+      };
+    });
+    document.querySelectorAll('[data-out]').forEach(function(b){
+      b.onclick=function(){
+        var r=store.records.filter(function(x){return x.id===b.dataset.out;})[0];
+        if(!r) return;
+        if(b.dataset.armed!=='1'){
+          b.dataset.armed='1'; b.textContent='Tap again to confirm';
+          setTimeout(function(){ if(b.dataset){ b.dataset.armed='0'; b.textContent='Sign out'; } },4000);
+          return;
+        }
+        r.out=nowISO(); r.uploaded=false; save(); uploadRec(r); render();
+        toast('Signed out '+r.name+' at '+fmtTime(r.out));
+      };
+    });
+    document.querySelectorAll('[data-yn]').forEach(function(g){
+      var id=g.dataset.yn;
+      g.querySelectorAll('button').forEach(function(btn){
+        btn.onclick=function(){ setYN(id,btn.dataset.val); toggleSub('avian','sub_avian'); toggleSub('poultry','sub_poultry'); checkBio(); };
+      });
+    });
+    // driver tick — auto-fills "refer to schedule" into the previous-sites box
+    var drv=document.getElementById('f_driver');
+    if(drv) drv.onchange=function(){
+      form.driver=drv.checked;
+      if(drv.checked){
+        setYN('avian','yes'); toggleSub('avian','sub_avian');
+        var a=document.getElementById('f_avian24'); if(a && !a.value) a.value='refer to schedule';
+      } else {
+        var a2=document.getElementById('f_avian24'); if(a2 && a2.value==='refer to schedule') a2.value='';
+      }
+      checkBio();
+    };
+    if(document.getElementById('sig')) initSig();
+    var ds=document.getElementById('doSignin'); if(ds) ds.onclick=doSignin;
+    // PIN gate
+    var pinOk=document.getElementById('pinOk');
+    if(pinOk) pinOk.onclick=function(){
+      var v=(document.getElementById('pinInput').value||'').trim();
+      if(v===store.staffPin){ staffUnlocked=true; view=pendingView||'records'; pendingView=null; render(); window.scrollTo(0,0); }
+      else { var pm=document.getElementById('pinMsg'); if(pm) pm.textContent='Incorrect PIN — try again.'; var pi=document.getElementById('pinInput'); if(pi){ pi.value=''; pi.focus(); } }
+    };
+    var pinIn=document.getElementById('pinInput');
+    if(pinIn){ pinIn.focus(); pinIn.onkeydown=function(e){ if(e.key==='Enter'&&pinOk) pinOk.onclick(); }; }
+    var savePin=document.getElementById('savePin');
+    if(savePin) savePin.onclick=function(){ var v=(document.getElementById('pinSet').value||'').trim(); if(v.length<3){ toast('Use at least 3 digits.'); return; } store.staffPin=v; save(); toast('Staff PIN updated.'); };
+    var ec=document.getElementById('expCsv'); if(ec) ec.onclick=exportCsv;
+    var ej=document.getElementById('expJson'); if(ej) ej.onclick=exportJson;
+    var ej2=document.getElementById('expJson2'); if(ej2) ej2.onclick=exportJson;
+    var dp=document.getElementById('doPrint'); if(dp) dp.onclick=function(){window.print();};
+    var fn=document.getElementById('flushNow'); if(fn) fn.onclick=function(e){e.preventDefault();flushQueue(true);};
+    var ss=document.getElementById('saveSite'); if(ss) ss.onclick=function(){
+      store.site=document.getElementById('siteSel').value; save();
+      if(store.site){ staffUnlocked=true; view='home'; } render();
+    };
+    var wa=document.getElementById('wipeAll'); if(wa) wa.onclick=function(){
+      if(wa.dataset.armed!=='1'){
+        wa.dataset.armed='1'; wa.textContent='Tap again to ERASE everything';
+        setTimeout(function(){ if(wa.dataset){ wa.dataset.armed='0'; wa.textContent='Erase ALL records on this tablet (start fresh)'; } },5000);
+        return;
+      }
+      store.records=[]; save(); render(); toast('All records on this tablet erased.');
+    };
+    var su=document.getElementById('saveUrl'); if(su) su.onclick=function(){
+      store.uploadUrl=(document.getElementById('upUrl').value||'').trim(); save();
+      var m=document.getElementById('upMsg'); if(m) m.textContent=store.uploadUrl?'Saved. Auto-upload is on.':'Saved. Auto-upload is off (offline mode).';
+      flushQueue(); setSite();
+    };
+    // "Send test" removed: a test ping carries no visitor file and crashes the Dropbox step.
+  }
+
+  function toggleSub(ynId,subId){
+    var s=document.getElementById(subId); if(!s)return;
+    s.classList.toggle('show', form[ynId]==='yes');
+  }
+
+  function checkBio(){
+    var warn=document.getElementById('bioWarn'); if(!warn)return;
+    warn.style.display = bioFlagFrom(form)?'block':'none';
+  }
+  function bioFlagFrom(f){
+    // Scheduled feed/hatchery drivers' previous-site visits are pre-managed by Avara,
+    // so the driver tick alone does not raise a STOP. All other triggers still apply.
+    var avianFlag = (f.avian==='yes') && !f.driver;
+    return avianFlag || (f.poultry==='yes')||(f.read==='no')||(f.agree==='no');
+  }
+
+  function doSignin(){
+    var name=(document.getElementById('f_name').value||'').trim();
+    if(!name){toast('Please enter the name.');return;}
+    if(!form.avian||!form.poultry||!form.agree||!form.birdarea){toast('Please answer the biosecurity questions.');return;}
+    if(form.read!=='yes'){toast('Please read the visitor instructions first.');return;}
+    var rec={
+      id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      site:store.site,
+      name:name,
+      company:(document.getElementById('f_company').value||'').trim(),
+      phone:(document.getElementById('f_phone').value||'').trim(),
+      vehicle:(document.getElementById('f_vehicle').value||'').trim().toUpperCase(),
+      purpose:(document.getElementById('f_purpose').value||'').trim(),
+      nextVisit:(document.getElementById('f_next').value||'').trim(),
+      avian72:form.avian,
+      avianSites24:(document.getElementById('f_avian24')?document.getElementById('f_avian24').value.trim():''),
+      avianSites48:(document.getElementById('f_avian48')?document.getElementById('f_avian48').value.trim():''),
+      avianSites72:(document.getElementById('f_avian72')?document.getElementById('f_avian72').value.trim():''),
+      poultry7:form.poultry, poultrySite:(document.getElementById('f_poultrySite')?document.getElementById('f_poultrySite').value.trim():''),
+      instructionsRead:form.read, agree:form.agree, birdArea:form.birdarea,
+      signature:sigData(),
+      bioFlag:bioFlagFrom(form),
+      in:nowISO(), out:null, uploaded:false
+    };
+    store.records.push(rec); save(); uploadRec(rec);
+    view='home'; form={}; render(); window.scrollTo(0,0);
+    toast('Signed in '+name+' at '+fmtTime(rec.in));
+  }
+
+  // ---------- Auto-upload ----------
+  function cardFileName(r){
+    var d=new Date(r.in); function p(n){return (n<10?'0':'')+n;}
+    var slug=(r.name||'visitor').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+'_'+slug+'.html';
+  }
+  function buildCard(r){
+    function row(l,v){return '<tr><td class="l">'+l+'</td><td class="v">'+(esc(v)||'&mdash;')+'</td></tr>';}
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'+
+      '<title>Visitor record &mdash; '+esc(r.name)+' &mdash; '+esc(r.site)+' &mdash; '+new Date(r.in).toLocaleDateString('en-GB')+'</title>'+
+      '<style>body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1d241f;background:#f1f3f1;margin:0;padding:20px}'+
+      '.card{max-width:640px;margin:0 auto;background:#fff;border:1px solid #d4dbd5;border-radius:10px;overflow:hidden}'+
+      '.head{background:#2f6b35;color:#fff;padding:16px 20px}.head h1{margin:0;font-size:19px}.head p{margin:3px 0 0;font-size:13px;opacity:.9}'+
+      '.body{padding:8px 20px 18px}'+
+      '.flagbar{background:#fdecea;border:1.5px solid #b23b3b;color:#b23b3b;border-radius:8px;padding:9px 12px;margin:12px 0 4px;font-size:14px;font-weight:700}'+
+      'h2{font-size:13px;color:#5b6660;text-transform:uppercase;letter-spacing:.4px;margin:18px 0 6px}'+
+      'table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:6px 0;border-bottom:1px solid #eef1ee;vertical-align:top}'+
+      'td.l{color:#5b6660;width:46%}td.v{font-weight:600}'+
+      '.sig{border:1.5px dashed #d4dbd5;border-radius:8px;padding:8px;margin-top:6px;text-align:center}.sig img{max-width:280px;height:auto}'+
+      '.foot{padding:12px 20px;border-top:1px solid #e2e8e3;font-size:11.5px;color:#5b6660}'+
+      '@media print{body{background:#fff;padding:0}.card{border:0;max-width:100%}}</style></head><body><div class="card">'+
+      '<div class="head"><h1>Visitor record &mdash; '+esc(r.name)+'</h1>'+
+      '<p>'+esc(r.site)+' &middot; '+new Date(r.in).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+
+      ' &middot; in '+fmtTime(r.in)+(r.out?(' &middot; out '+fmtTime(r.out)):' &middot; STILL ON SITE')+' &middot; record '+esc(r.id)+'</p></div>'+
+      '<div class="body">'+
+      (r.bioFlag?'<div class="flagbar">&#9888; BIOSECURITY CHECK was required for this visit</div>':'')+
+      '<h2>Visitor</h2><table>'+
+      row('Name',r.name)+row('Company / organisation',r.company)+row('Business telephone',r.phone)+
+      row('Vehicle registration',r.vehicle)+row('Reason for visit',r.purpose)+row('Next site visit (if known)',r.nextVisit)+
+      '</table><h2>Biosecurity declaration</h2><table>'+
+      row('Avian or pig contact, last 72 hours',r.avian72)+
+      row('&nbsp;&nbsp;Sites &mdash; last 24 hours',r.avianSites24)+
+      row('&nbsp;&nbsp;Sites &mdash; 24&ndash;48 hours ago',r.avianSites48)+
+      row('&nbsp;&nbsp;Sites &mdash; 48&ndash;72 hours ago',r.avianSites72)+
+      row('Poultry contact, last 7 days (14 if overseas)',r.poultry7+(r.poultrySite?(' &mdash; '+r.poultrySite):''))+
+      row('Enteric disease &amp; visitor instructions read',r.instructionsRead)+
+      row('Agreed to site biosecurity',r.agree)+
+      row('Entered bird area',r.birdArea)+
+      '</table><h2>Times</h2><table>'+
+      row('Time in',fmt(r.in))+row('Time out',r.out?fmt(r.out):'still on site')+
+      '</table><h2>Signed declaration</h2>'+
+      '<p style="font-size:13px;color:#5b6660;margin:4px 0 0">I confirm the information above is correct. I understand this is a poultry site and agree to follow all biosecurity instructions while on the premises.</p>'+
+      '<div class="sig">'+(r.signature?('<img src="'+r.signature+'" alt="Visitor signature">'):'<span style="color:#5b6660;font-size:13px">No signature captured</span>')+'</div>'+
+      '</div><div class="foot">Rhydimoor Farms Ltd &middot; Gate house visitor record &middot; generated automatically from the sign-in tablet</div>'+
+      '</div></body></html>';
+  }
+  function payload(r){
+    return {
+      id:r.id, site:r.site, date:new Date(r.in).toLocaleDateString('en-GB'),
+      name:r.name, company:r.company, phone:r.phone, vehicle:r.vehicle, purpose:r.purpose,
+      nextVisit:r.nextVisit,
+      avianPig72h:r.avian72, avianPigSitesLast24h:r.avianSites24||'', avianPigSites24to48h:r.avianSites48||'', avianPigSites48to72h:r.avianSites72||'',
+      poultry7or14d:r.poultry7, poultrySite:r.poultrySite,
+      instructionsRead:r.instructionsRead, agreedBiosecurity:r.agree, enteredBirdArea:r.birdArea,
+      biosecurityFlag:r.bioFlag?'CHECK':'ok',
+      timeIn:fmt(r.in), timeOut:r.out?fmt(r.out):'', onSite:!r.out,
+      signature:r.signature||'',
+      fileName:cardFileName(r),
+      cardHtml:buildCard(r)
+    };
+  }
+  function post(url,obj){
+    var body=new URLSearchParams();
+    Object.keys(obj).forEach(function(k){ var v=obj[k]; body.append(k, v==null?'':String(v)); });
+    return fetch(url,{method:'POST',mode:'no-cors',body:body});
+  }
+  function uploadRec(r){
+    if(!store.uploadUrl){ return; }
+    post(store.uploadUrl,payload(r)).then(function(){
+      r.uploaded=true; r.uploadedAt=nowISO(); save(); setSite(); if(view==='records')render();
+    }).catch(function(){ /* offline / unreachable — stays pending, retries later */ });
+  }
+  function flushQueue(force){
+    if(!store.uploadUrl) return;
+    if(!force && !navigator.onLine) return;
+    store.records.forEach(function(r){ if(!r.uploaded) uploadRec(r); });
+  }
+
+  window.addEventListener('online', function(){ flushQueue(true); });
+  setInterval(function(){ flushQueue(false); }, 60000);
+
+  // ---------- Export ----------
+  function dl(name,text,type){
+    var blob=new Blob([text],{type:type});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+  }
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10);}
+  function csvCell(s){s=(s==null?'':String(s));return '"'+s.replace(/"/g,'""')+'"';}
+  function exportCsv(){
+    var head=['Site','Date','Name','Company','Business phone','Vehicle reg','Reason for visit','Time in','Time out',
+              'Avian/pig contact 72h','Sites last 24h','Sites 24-48h','Sites 48-72h','Poultry contact 7/14d','Poultry date & site',
+              'Instructions read','Agreed biosecurity','Entered bird area','Next site visit','Biosecurity flag'];
+    var rows=store.records.map(function(r){return [
+      r.site,new Date(r.in).toLocaleDateString('en-GB'),r.name,r.company,r.phone,r.vehicle,r.purpose,
+      fmt(r.in),r.out?fmt(r.out):'',r.avian72,r.avianSites24||r.avianSites||'',r.avianSites48||'',r.avianSites72||'',r.poultry7,r.poultrySite,
+      r.instructionsRead,r.agree,r.birdArea,r.nextVisit,r.bioFlag?'CHECK':'ok'
+    ].map(csvCell).join(',');});
+    var csv=head.map(csvCell).join(',')+'\n'+rows.join('\n');
+    dl((store.site||'Gatehouse')+'-visitor-log-'+stamp()+'.csv',csv,'text/csv');
+  }
+  function exportJson(){
+    dl((store.site||'Gatehouse')+'-visitor-log-BACKUP-'+stamp()+'.json',JSON.stringify(store,null,2),'application/json');
+  }
+
+  render();
+  flushQueue(false);
+})();
+</script>
+</body>
+</html>
