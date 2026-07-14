@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light only">
 <title>Gate House Visitor Log</title>
 <style>
   :root{
+    color-scheme:light only;   /* stop Android/Fire Dark Theme flipping the page black */
     --green:#2f6b35; --green-d:#244f29; --green-l:#e7f1e8;
     --amber:#b8860b; --red:#b23b3b; --grey:#5b6660; --line:#d4dbd5; --bg:#f4f7f4;
   }
+  html{background:#f4f7f4}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#1d241f;font-size:18px;line-height:1.4}
@@ -19,7 +22,7 @@
   header .count{background:#fff;color:var(--green-d);border-radius:20px;padding:4px 14px;font-weight:700;font-size:16px}
   header .cloud{font-size:13px;border-radius:20px;padding:4px 10px;font-weight:700}
   .cloud.on{background:#d7ecd9;color:var(--green-d)} .cloud.off{background:#fbe3df;color:var(--red)} .cloud.idle{background:#eee;color:#666}
-  main{max-width:760px;margin:0 auto;padding:16px 14px 40px}
+  main{max-width:900px;margin:0 auto;padding:16px 14px 40px}
   h2{font-size:20px;margin:6px 2px 12px}
   .muted{color:var(--grey)}
   button{font-family:inherit;font-size:18px;border:0;border-radius:12px;padding:16px 18px;cursor:pointer}
@@ -61,11 +64,19 @@
   .setup-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:40px;background:var(--green-d);color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;max-width:86%;text-align:center;z-index:120;box-shadow:0 2px 8px rgba(0,0,0,.25)}
   /* ---- v3 home screen ---- */
-  .home{max-width:560px;margin:0 auto;padding:10px 4px}
+  .home{max-width:900px;margin:0 auto;padding:10px 4px}
   .home-hello{text-align:center;color:var(--green-d);font-weight:700;font-size:18px;margin:8px 0 18px}
   .home-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
   .big{border-radius:18px;padding:34px 12px;color:#fff;font-weight:800;font-size:24px;display:flex;flex-direction:column;align-items:center;gap:10px;line-height:1}
   .big .ic{font-size:42px;line-height:1}
+  /* Landscape (wall-mounted tablets): make the two big buttons dominate the screen */
+  @media (orientation:landscape){
+    .home{max-width:960px}
+    .home-hello{font-size:22px;margin:6px 0 22px}
+    .home-btns{gap:22px;margin-bottom:22px}
+    .big{padding:72px 12px;font-size:40px;border-radius:22px;gap:14px}
+    .big .ic{font-size:72px}
+  }
   .big.in{background:var(--green)} .big.in:active{background:var(--green-d)}
   .big.out{background:var(--red)} .big.out:active{filter:brightness(.92)}
   .home-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
@@ -192,6 +203,22 @@
     document.body.appendChild(t); setTimeout(function(){ t.remove(); },3000);
   }
   function pendingCount(){return store.uploadUrl?store.records.filter(function(r){return !r.uploaded;}).length:0;}
+  // ----- name/company memory (autocomplete from past sign-ins) -----
+  function memOpts(key){
+    var seen={}, out=[];
+    for(var i=store.records.length-1;i>=0;i--){
+      var v=(store.records[i][key]||'').trim(); if(!v) continue;
+      var k=v.toLowerCase(); if(seen[k]) continue; seen[k]=1;
+      out.push('<option value="'+esc(v)+'"></option>');
+      if(out.length>=200) break;
+    }
+    return out.join('');
+  }
+  function lastRecordByName(name){
+    var n=(name||'').trim().toLowerCase(); if(!n) return null;
+    for(var i=store.records.length-1;i>=0;i--){ if((store.records[i].name||'').trim().toLowerCase()===n) return store.records[i]; }
+    return null;
+  }
 
   function setSite(){
     document.getElementById('siteName').textContent = store.site ? ("Gate House — "+store.site) : "Gate House";
@@ -297,8 +324,8 @@
       '<div class="card">'+
         '<label class="drv" for="f_driver"><input type="checkbox" id="f_driver"'+(driverOn?' checked':'')+'>'+
           '<span>Feed or hatchery driver<div class="sub">Ticks the Avara allowance — auto-fills &ldquo;refer to schedule&rdquo; for previous sites.</div></span></label>'+
-        '<label>Name <span class="req">*</span></label><input type="text" id="f_name" autocomplete="off">'+
-        '<label>Company / organisation</label><input type="text" id="f_company" autocomplete="off">'+
+        '<label>Name <span class="req">*</span></label><input type="text" id="f_name" autocomplete="off" list="nameList"><datalist id="nameList">'+memOpts('name')+'</datalist>'+
+        '<label>Company / organisation</label><input type="text" id="f_company" autocomplete="off" list="companyList"><datalist id="companyList">'+memOpts('company')+'</datalist>'+
         '<label>Business telephone number</label><input type="tel" id="f_phone" autocomplete="off">'+
         '<label>Vehicle registration</label><input type="text" id="f_vehicle" autocomplete="off" style="text-transform:uppercase">'+
         '<label>Reason for visit</label><input type="text" id="f_purpose" autocomplete="off">'+
@@ -549,7 +576,8 @@
           setTimeout(function(){ if(b.dataset){ b.dataset.armed='0'; b.textContent='Sign out'; } },4000);
           return;
         }
-        r.out=nowISO(); r.uploaded=false; save(); uploadRec(r); render();
+        r.out=nowISO(); r.uploaded=false; save(); uploadRec(r);
+        view='home'; render(); window.scrollTo(0,0);   // back to the SIGN IN / SIGN OUT home screen
         toast('Signed out '+r.name+' at '+fmtTime(r.out));
       };
     });
@@ -571,6 +599,14 @@
       }
       checkBio();
     };
+    // returning visitor: when a known name is entered, pre-fill company/phone/vehicle if still blank
+    var fname=document.getElementById('f_name');
+    if(fname) fname.addEventListener('change',function(){
+      var m=lastRecordByName(fname.value); if(!m) return;
+      var fc=document.getElementById('f_company'); if(fc && !fc.value.trim()) fc.value=m.company||'';
+      var fp=document.getElementById('f_phone');   if(fp && !fp.value.trim()) fp.value=m.phone||'';
+      var fv=document.getElementById('f_vehicle'); if(fv && !fv.value.trim()) fv.value=(m.vehicle||'').toUpperCase();
+    });
     if(document.getElementById('sig')) initSig();
     var ds=document.getElementById('doSignin'); if(ds) ds.onclick=doSignin;
     // PIN gate
