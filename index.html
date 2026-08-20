@@ -203,22 +203,11 @@
     document.body.appendChild(t); setTimeout(function(){ t.remove(); },3000);
   }
   function pendingCount(){return store.uploadUrl?store.records.filter(function(r){return !r.uploaded;}).length:0;}
-  // ----- name/company memory (autocomplete from past sign-ins) -----
-  function memOpts(key){
-    var seen={}, out=[];
-    for(var i=store.records.length-1;i>=0;i--){
-      var v=(store.records[i][key]||'').trim(); if(!v) continue;
-      var k=v.toLowerCase(); if(seen[k]) continue; seen[k]=1;
-      out.push('<option value="'+esc(v)+'"></option>');
-      if(out.length>=200) break;
-    }
-    return out.join('');
-  }
-  function lastRecordByName(name){
-    var n=(name||'').trim().toLowerCase(); if(!n) return null;
-    for(var i=store.records.length-1;i>=0;i--){ if((store.records[i].name||'').trim().toLowerCase()===n) return store.records[i]; }
-    return null;
-  }
+  // ----- name/company memory REMOVED 20 Aug 2026 -----
+  // The dropdown suggestion lists (memOpts) and the returning-visitor pre-fill
+  // (lastRecordByName) were taken out at Yvonne's request: the suggestion list had
+  // grown long enough that visitors were scrolling to the bottom of it, which was
+  // slower than typing. Every field is now typed fresh at every sign-in.
 
   function setSite(){
     document.getElementById('siteName').textContent = store.site ? ("Gate House — "+store.site) : "Gate House";
@@ -324,8 +313,8 @@
       '<div class="card">'+
         '<label class="drv" for="f_driver"><input type="checkbox" id="f_driver"'+(driverOn?' checked':'')+'>'+
           '<span>Feed or hatchery driver<div class="sub">Ticks the Avara allowance — auto-fills &ldquo;refer to schedule&rdquo; for previous sites.</div></span></label>'+
-        '<label>Name <span class="req">*</span></label><input type="text" id="f_name" autocomplete="off" list="nameList"><datalist id="nameList">'+memOpts('name')+'</datalist>'+
-        '<label>Company / organisation</label><input type="text" id="f_company" autocomplete="off" list="companyList"><datalist id="companyList">'+memOpts('company')+'</datalist>'+
+        '<label>Name <span class="req">*</span></label><input type="text" id="f_name" autocomplete="off">'+
+        '<label>Company / organisation</label><input type="text" id="f_company" autocomplete="off">'+
         '<label>Business telephone number</label><input type="tel" id="f_phone" autocomplete="off">'+
         '<label>Vehicle registration</label><input type="text" id="f_vehicle" autocomplete="off" style="text-transform:uppercase">'+
         '<label>Reason for visit</label><input type="text" id="f_purpose" autocomplete="off">'+
@@ -599,14 +588,6 @@
       }
       checkBio();
     };
-    // returning visitor: when a known name is entered, pre-fill company/phone/vehicle if still blank
-    var fname=document.getElementById('f_name');
-    if(fname) fname.addEventListener('change',function(){
-      var m=lastRecordByName(fname.value); if(!m) return;
-      var fc=document.getElementById('f_company'); if(fc && !fc.value.trim()) fc.value=m.company||'';
-      var fp=document.getElementById('f_phone');   if(fp && !fp.value.trim()) fp.value=m.phone||'';
-      var fv=document.getElementById('f_vehicle'); if(fv && !fv.value.trim()) fv.value=(m.vehicle||'').toUpperCase();
-    });
     if(document.getElementById('sig')) initSig();
     var ds=document.getElementById('doSignin'); if(ds) ds.onclick=doSignin;
     // PIN gate
