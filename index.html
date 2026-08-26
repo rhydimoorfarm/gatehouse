@@ -134,6 +134,10 @@
   "use strict";
   var KEY="gateVisitorLog_v2";   // keep the same store key — data carries over from v2
   var OLDKEY="gateVisitorLog_v1";
+  // App version. Bump this on EVERY change to index.html, date first so it sorts.
+  // Shown on the Setup screen and stamped into every record, so the version a
+  // tablet is actually running can be told from the office without a site visit.
+  var APP_VERSION="2026-08-26a";
   // Per-farm site map: Google My Maps aerial + our own always-visible labels.
   // pin = [name, lng, lat, class, labelDX, labelDY]
   var MAPCFG={
@@ -392,6 +396,7 @@
         '</div>'+
         '<button class="btn-primary" id="saveSite">Save site</button>'+
         '<div class="field-note">Set once when the tablet is installed. Each gate house keeps its own records and shows its own site map.</div>'+
+        '<div class="field-note" style="margin-top:10px"><b>App version:</b> '+esc(APP_VERSION)+'<div>If this does not match the version you expect, the tablet is still running an older copy &mdash; reload the page.</div></div>'+
       '</div>'+
       '<div class="card">'+
         '<h2 style="margin-top:0">Automatic upload</h2>'+
@@ -664,6 +669,7 @@
       instructionsRead:form.read, agree:form.agree, birdArea:form.birdarea,
       signature:sigData(),
       bioFlag:bioFlagFrom(form),
+      appVersion:APP_VERSION,
       in:nowISO(), out:null, uploaded:false
     };
     store.records.push(rec); save(); uploadRec(rec);
@@ -714,7 +720,7 @@
       '</table><h2>Signed declaration</h2>'+
       '<p style="font-size:13px;color:#5b6660;margin:4px 0 0">I confirm the information above is correct. I understand this is a poultry site and agree to follow all biosecurity instructions while on the premises.</p>'+
       '<div class="sig">'+(r.signature?('<img src="'+r.signature+'" alt="Visitor signature">'):'<span style="color:#5b6660;font-size:13px">No signature captured</span>')+'</div>'+
-      '</div><div class="foot">Rhydimoor Farms Ltd &middot; Gate house visitor record &middot; generated automatically from the sign-in tablet</div>'+
+      '</div><div class="foot">Rhydimoor Farms Ltd &middot; Gate house visitor record &middot; generated automatically from the sign-in tablet'+(r.appVersion?(' &middot; app '+esc(r.appVersion)):'')+'</div>'+
       '</div></body></html>';
   }
   function payload(r){
